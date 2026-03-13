@@ -1,0 +1,48 @@
+.bash_profile
+.gitconfig
+.profile
+.zprofile
+.zshrc
+acme.dump
+guide
+mkfile
+.ssh
+	config
+bin	d755
+	+
+go	d755
+	src	d755
+		guide
+		github.com
+			anacrolix
+				torrent
+					guide
+				dht
+					guide
+lib	d755
+	font	d755
+		+
+	harvey	d755
+		guide
+	talk	d755
+		+
+	demo.regis
+	demo.sixel
+	ding
+	gitignore
+	plumbing
+	syntetic.conf 644 - - ../../etc/synthetic.d/synthetic.conf
+Library	d755
+	LaunchAgents	d755
+		plumber.plist
+replica	d755
+	term.proto
+	lib
+		*
+src	d755
+	serial.go
+	docker	d755
+		+
+	learn	d755
+		+
+tmp	d755
