@@ -3,8 +3,9 @@
 #
 # "coverage": {grep '^func' scan.sh |sort; grep '^[ 	]*[a-z][a-z]* test[a-z]' $% |sort}
 
+os=`uname`
 tests=`sed -n '/^test.*[(][)].*{/ s/[^A-Za-z0-9_]*//gp' $0`
-fns=`sed '/^function /,/^}/!d' scan.sh`
+fns=`sed '/^function /,/^}/!d' scan.sh | sed "s!'[\$]os'!$os!"`
 fns=$fns'
 	function fatal(s, testname) {
 		testname = ENVIRON["testname"]
@@ -635,6 +636,9 @@ testclidb() {
 	fi
 	return $ret
 }
+
+t=testcli testname=$t $t
+exit
 
 p=''
 for t in $tests

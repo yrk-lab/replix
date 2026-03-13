@@ -7,8 +7,16 @@
 #
 # test while hacking:
 #	Watch ./scan_test.sh
+os=`uname`
 
-exec awk -v 'root='$1 -v 'dbpath='$2 -v 'time='`date +%s` '
+now_Plan9(){ date -n; }
+now_Darwin(){ date +%s; }
+now_Linux(){ date +%s; }
+
+ls_Plan9='ls -pF'
+eval ls_os=\$ls_$os
+
+exec awk -v 'root='$1 -v 'dbpath='$2 -v 'time='`now_$os` -v ls="$ls_os" '
 BEGIN {
 	loaddb(dbpath)
 } /^[\t ]*(#.*)?$/ {
@@ -29,7 +37,7 @@ function walk(stk, n, wname, mode, uid, gid, serverpath) {
 }
 
 function walkdir(path, deep, _, cmd, s, p, isdir) {
-	cmd = "ls " pathjoin(root, path)
+	cmd = ls " " pathjoin(root, path)
 	while(cmd | getline s > 0) {
 		if(s ~ /[ \t]/)
 			continue
@@ -114,7 +122,28 @@ function dbstat(path, d, _, f) {
 }
 
 function stat(path, d) {
+	return stat_'$os'(path, d)
+}
+
+function stat_Darwin(path, d) {
 	return stat_bsd(path, d)
+}
+
+function stat_Plan9(path, d, _, f, s, ret, cmd) {
+	delete d
+	ret = -1
+	cmd = "syscall -s fstat 0 buf 1024 < " path
+	while(cmd | getline s > 0) {
+		if(split(s, f, " ") != 20)
+			continue
+		d["uid"] = substr(f[2], 2, length(f[2])-2)
+		d["gid"] = substr(f[3], 2, length(f[3])-2)
+		d["mode"] = modestr_Plan9(f[10])
+		d["mtime"] = int(f[14])
+		d["length"] = int(f[16])
+		ret = 0
+	}
+	return ret
 }
 
 function stat_bsd(path, d, _, cmd, s,  f, ret, q) {
@@ -140,6 +169,12 @@ function modestr_bsd(s, _, r) {
 	if(s ~ /^.[4]/)
 		r = "d"
 	return r substr(s, 4, 3)
+}
+
+function modestr_Plan9(s, _, r) {
+	if(s ~ /^.[2].......[0-9][0-9][0-9]/)
+		r = "d"
+	return r substr(s, length(s)-2, 3)
 }
 
 function pathjoin(a, b, _, sep) {
