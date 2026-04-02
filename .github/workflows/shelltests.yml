@@ -1,0 +1,24 @@
+name: Shell CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        os: [macos-14, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run scan_test
+      run: ./scan_test.sh
+
+    - name: Run apply_test
+      run: ./apply_test.sh
