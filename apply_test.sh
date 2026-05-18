@@ -2,6 +2,39 @@
 # {Watch ./apply_test.sh}
 
 tests=`sed -n '/^test.*[(][)].*{/ s/[^A-Za-z0-9_]*//gp' $0`
+fns=`sed '/^function /,/^}/!d' apply.sh`
+
+testq() {
+	awk '
+	BEGIN {
+		testq()
+	}
+	function testq(    apos) {
+		apos = sprintf("%c", 39)
+		check("abc")
+		check("")
+		check("a" apos "b")
+		check("a;b")
+		check("$HOME")
+		check("a\\b")
+		check(apos apos)
+	}
+	function check(s,    got, quoted, cmd, tmp, apos) {
+		apos = sprintf("%c", 39)
+		tmp = "/tmp/" ENVIRON["testname"] ".tmp"
+		quoted = q(s)
+		cmd = "printf " apos "%s" apos " " quoted " >" tmp
+		system(cmd)
+		getline got < tmp
+		close(tmp)
+		system("rm -f " tmp)
+		if (got != s) {
+			printf "FAIL q(%s): roundtrip got [%s]\n", s, got | "cat >&2"
+			exit 1
+		}
+	}
+	'"$fns"
+}
 
 testapplyafresh() {
 	r=/tmp/replica.${testname?} o=$r/old n=$r/new
@@ -89,6 +122,33 @@ testapplydeleted() {
 	rm -r "$r"
 }
 
+
+testapplyq() {
+	r=/tmp/replica.${testname?} o=$r/old n=$r/new
+	rm -rf $r
+	mkdir $r $o $n
+	printf 'hello\n' > "$o/a'b"
+	printf 'hello\n' > "$o/c;d"
+	{
+		echo "1648230000 0 a dir'x - d755 user staff 1648208130 0"
+		echo "1648230000 1 a a'b - 644 user staff 1648208130 6"
+		echo "1648230000 2 a c;d - 644 user staff 1648208130 6"
+		echo "1648230000 3 m a'b - 500 user staff 1648208130 6"
+		echo "1648230000 4 d c;d - 644 user staff 1648208130 6"
+		echo "1648230000 5 d dir'x - d755 user staff 1648208130 0"
+	} >$r/log
+	sh ./apply.sh $o $n $r/time <$r/log >$r/out || exit
+	(
+		set -x
+		test ! -e "$n/dir'x" || exit
+		test -f "$n/a'b" || exit
+		test ! -w "$n/a'b" || exit
+		test ! -e "$n/c;d" || exit
+		nr=`wc -l <$r/out` && test "$nr" -eq 6 || exit
+		time=`cat $r/time` && test "$time" = '1648230000 5' || exit
+	) 2>$r/err || { cat $r/err; exit 1; }
+	rm -r "$r"
+}
 
 p=''
 for t in $tests

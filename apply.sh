@@ -39,25 +39,31 @@ BEGIN {
 	savetime()
 }
 
+function q(s,    apos) {
+	apos = sprintf("%c", 39)
+	gsub(apos, apos "\\" apos apos, s)
+	return apos s apos
+}
+
 function mkdir(path) {
-	x("mkdir -p " path)
+	x("mkdir -p " q(path))
 }
 
 function rm(path) {
-	x("rm -f " path)
+	x("rm -f " q(path))
 }
 
 function rmdir(path) {
-	x("rmdir " path)
+	x("rmdir " q(path))
 }
 
 function cp(old, new) {
-	x("test ! -e " old " || cp " old " " new " || test ! -e " old)
+	x("test ! -e " q(old) " || cp -- " q(old) " " q(new))
 }
 
 function chmod(path, mode) {
 	sub("d", "", mode)
-	x("test ! -e " path " || chmod " mode " " path)
+	x("test ! -e " q(path) " || chmod " mode " " q(path))
 }
 
 function loadtime() {
@@ -69,7 +75,7 @@ function loadtime() {
 
 function savetime() {
 	if(timefile != "")
-		x("echo " time " " gen " >" timefile)
+		x("echo " time " " gen " >" q(timefile))
 }
 
 function x(s) {
