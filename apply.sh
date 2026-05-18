@@ -11,7 +11,7 @@ case $# in
 *)	usage
 esac
 
-exec awk -v 'old='"$old" -v 'new='"$new" -v 'timefile='"$timefile"  '
+exec awk -v "old=$old" -v "new=$new" -v "timefile=$timefile"  '
 BEGIN {
 	Time=1; Gen=2; Verb=3; Path=4; Spath=5; Mode=6; Uid=7; Gid=8; Mtime=9; Len=10
 	loadtime()

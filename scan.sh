@@ -2,13 +2,13 @@
 # usage: scan.sh [root [dbpath]] <proto
 # see also:
 #  • apply.sh
-#  • replica/updatedb in http://9p.io/magic/man2html/8/replica'
+#  • replica/updatedb in http://9p.io/magic/man2html/8/replica
 #  • proto(1) in AIX: https://www.ibm.com/docs/en/aix/7.3?topic=p-proto-command
 #
 # test while hacking:
 #	Watch ./scan_test.sh
 
-exec awk -v 'root='$1 -v 'dbpath='$2 -v 'time='`date +%s` '
+exec awk -v "root=$1" -v "dbpath=$2" -v "time=`date +%s`" '
 BEGIN {
 	loaddb(dbpath)
 } /^[\t ]*(#.*)?$/ {
