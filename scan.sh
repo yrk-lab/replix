@@ -29,7 +29,7 @@ function walk(stk, n, wname, mode, uid, gid, serverpath) {
 }
 
 function walkdir(path, deep, _, cmd, s, p, isdir) {
-	cmd = "ls " pathjoin(root, path)
+	cmd = "ls " q(pathjoin(root, path))
 	while(cmd | getline s > 0) {
 		if(s ~ /[ \t]/)
 			continue
@@ -117,11 +117,11 @@ function stat(path, d) {
 	return stat_bsd(path, d)
 }
 
-function stat_bsd(path, d, _, cmd, s,  f, ret, q) {
+function stat_bsd(path, d, _, cmd, s,  f, ret, flag) {
 	delete d
 	ret = -1
-	q = silentstat? "q" : ""	# noise-manage the tests
-	cmd = "stat -" q "f %.6Op/%Su/%Sg/%Um/%Uz " path
+	flag = silentstat? "q" : ""	# noise-manage the tests
+	cmd = "stat -" flag "f %.6Op/%Su/%Sg/%Um/%Uz " q(path)
 	while(cmd | getline s > 0) {
 		if(split(s, f, "/") != 5)
 			continue
@@ -140,6 +140,13 @@ function modestr_bsd(s, _, r) {
 	if(s ~ /^.[4]/)
 		r = "d"
 	return r substr(s, 4, 3)
+}
+
+function q(s,    apos, bsl) {
+	apos = sprintf("%c", 39)
+	bsl  = sprintf("%c", 92)
+	gsub(apos, apos bsl apos apos, s)
+	return apos s apos
 }
 
 function pathjoin(a, b, _, sep) {

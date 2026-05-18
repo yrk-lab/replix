@@ -409,7 +409,7 @@ testwalk() {
 	function testwalk_expand() {
 		name = "envvar [$]"
 		f = ENVIRON["expandme"]
-		system("mkdir -p " wd "/" f "/x")
+		system("mkdir -p " q(wd "/" f "/x"))
 		called["n"] = 0
 		walk(stk, 0, "$expandme")
 		walk(stk, 1, "x")
@@ -476,32 +476,32 @@ testupdate() {
 
 		dbstat("A", d)
 		update("a", "A",  "fs/a", d)
-		if(getline q <dbpath <= 0)	fatal("short read from db file")
+		if(getline s <dbpath <= 0)	fatal("short read from db file")
 		if(getline p <= 0)	fatal("short read from captured log ")
 		# path mode uid gid mtime length
-		must(q, "A 644 sys adm 1111 99", "db line 1")
+		must(s, "A 644 sys adm 1111 99", "db line 1")
 		# time gen verb path serverpath mode uid gid mtime length
 		must(p, "123 0 a A fs/a 644 sys adm 1111 99", "log line 1")
 
 		dbstat("B", d)
 		update("m", "B",  "-", d)
-		if(getline q <dbpath <= 0)	fatal("short read from db file")
+		if(getline s <dbpath <= 0)	fatal("short read from db file")
 		if(getline p <= 0)	fatal("short read from captured log ")
-		must(q, "B d755 bunny sys 2222 88", "db line 2")
+		must(s, "B d755 bunny sys 2222 88", "db line 2")
 		must(p, "123 1 m B - d755 bunny sys 2222 88", "log line 2")
 
 		dbstat("C", d)
 		update("c", "C",  "", d)
-		if(getline q <dbpath <= 0)	fatal("short read from db file")
+		if(getline s <dbpath <= 0)	fatal("short read from db file")
 		if(getline p <= 0)	fatal("short read from captured log ")
-		must(q, "C 640 root staff 3333 77", "db line 3")
+		must(s, "C 640 root staff 3333 77", "db line 3")
 		must(p, "123 2 c C - 640 root staff 3333 77", "log line 3")
 
 		dbstat("D", d)
 		update("d", "D",  "", d)
-		if(getline q <dbpath <= 0)	fatal("short read from db file")
+		if(getline s <dbpath <= 0)	fatal("short read from db file")
 		if(getline p <= 0)	fatal("short read from captured log ")
-		must(q, "D REMOVED nobody world 4444 66", "db line 4")
+		must(s, "D REMOVED nobody world 4444 66", "db line 4")
 		must(p, "123 3 d D - 440 nobody world 4444 66", "log line 4")
 	} END {
 		system("rm -r " wd)
@@ -634,6 +634,58 @@ testclidb() {
 		rm -r "$wd"
 	fi
 	return $ret
+}
+
+testq() {
+	awk '
+	BEGIN {
+		testq()
+	}
+	function testq(    apos) {
+		apos = sprintf("%c", 39)
+		check("abc")
+		check("")
+		check("a" apos "b")
+		check("a;b")
+		check("$HOME")
+		check("a\\b")
+		check(apos apos)
+	}
+	function check(s,    got, quoted, cmd, tmp, apos) {
+		apos = sprintf("%c", 39)
+		tmp = "/tmp/" ENVIRON["testname"] ".tmp"
+		quoted = q(s)
+		cmd = "printf " apos "%s" apos " " quoted " >" tmp
+		system(cmd)
+		getline got < tmp
+		close(tmp)
+		system("rm -f " tmp)
+		if (got != s) {
+			printf "FAIL q(%s): roundtrip got [%s]\n", s, got | "cat >&2"
+			exit 1
+		}
+	}
+	'"$fns"
+}
+
+testscanq() {
+	wd=/tmp/replica.${testname?}
+	rm -rf "$wd"
+	mkdir "$wd" "$wd/r"
+	printf hi > "$wd/r/a'b"
+	printf hi > "$wd/r/c;d"
+	echo '+' | ./scan.sh "$wd/r" > "$wd/out" || exit
+	awk '
+	BEGIN { Path=4; Verb=3; apos = sprintf("%c", 39) }
+	$Path == "a" apos "b" { fa=1; must($Verb, "a", "verb") }
+	$Path == "c;d"         { fb=1; must($Verb, "a", "verb") }
+	END {
+		must(fa, 1, "found a" apos "b")
+		must(fb, 1, "found c;d")
+		must(NR, 2, "line count")
+	}
+	'"$fns" < "$wd/out" &&
+	rm -r "$wd"
 }
 
 p=''

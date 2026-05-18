@@ -39,9 +39,10 @@ BEGIN {
 	savetime()
 }
 
-function q(s,    apos) {
+function q(s,    apos, bsl) {
 	apos = sprintf("%c", 39)
-	gsub(apos, apos "\\" apos apos, s)
+	bsl  = sprintf("%c", 92)
+	gsub(apos, apos bsl apos apos, s)
 	return apos s apos
 }
 
